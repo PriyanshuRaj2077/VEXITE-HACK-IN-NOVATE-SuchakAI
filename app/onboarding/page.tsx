@@ -185,6 +185,9 @@ export default function OnboardingPage() {
     };
 
     localStorage.setItem('soochai_profile', JSON.stringify(finalProfile));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('soochai_profile_updated'));
+    }
 
     // Persist to Supabase profiles table if authenticated
     try {

@@ -64,24 +64,14 @@ export function ChatbotWidget({ currentProfile }: ChatbotWidgetProps) {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const handleQuickSuggestion = (suggestion: string) => {
-    setInputValue(suggestion);
-    setTimeout(() => {
-      const form = document.querySelector('form');
-      if (form) {
-        form.dispatchEvent(new Event('submit', { bubbles: true }));
-      }
-    }, 100);
-  };
-
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!inputValue.trim() || !currentProfile) return;
+  const submitMessage = async (text: string) => {
+    const cleanText = text.trim();
+    if (!cleanText || !currentProfile) return;
 
     const userMessage: ChatMessage = {
       id: `msg_${Date.now()}`,
       role: 'user',
-      content: inputValue.trim(),
+      content: cleanText,
       timestamp: Date.now(),
     };
 
@@ -133,6 +123,15 @@ export function ChatbotWidget({ currentProfile }: ChatbotWidgetProps) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleQuickSuggestion = (suggestion: string) => {
+    submitMessage(suggestion);
+  };
+
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    submitMessage(inputValue);
   };
 
   return (
