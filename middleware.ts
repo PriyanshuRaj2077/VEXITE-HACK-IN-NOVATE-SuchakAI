@@ -23,7 +23,8 @@ export async function middleware(request: NextRequest) {
         },
       });
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      const hasGuestSession = request.cookies.get('suchakai_guest_session')?.value === 'true';
+      if (!user && !hasGuestSession) {
         return NextResponse.redirect(new URL('/auth', request.url));
       }
     }

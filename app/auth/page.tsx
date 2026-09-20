@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Navbar } from '@/components/Navbar';
 import { Sparkles, AlertCircle, Loader2, ShieldCheck } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
@@ -18,15 +18,43 @@ function AuthPageInner() {
     }
   }, [searchParams]);
 
+  const router = useRouter();
+
+  const handleGuestLogin = () => {
+    // Set guest session cookie so middleware grants access to /dashboard
+    document.cookie = 'suchakai_guest_session=true; path=/; max-age=604800; SameSite=Lax';
+    if (!localStorage.getItem('soochai_profile')) {
+      const demoProfile = {
+        name: 'Citizen',
+        age: 24,
+        gender: 'all',
+        state: 'Maharashtra',
+        category: 'General',
+        occupation: 'job_seeker',
+        education: 'undergraduate',
+        annualIncome: 250000,
+        isRural: false,
+        hasDisability: false,
+        interests: ['Education & Learning', 'Skill & Employment'],
+      };
+      localStorage.setItem('soochai_profile', JSON.stringify(demoProfile));
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('soochai_profile_updated'));
+      }
+    }
+    router.push('/dashboard');
+  };
+
   const handleGoogleSignIn = async () => {
     setErrorMsg('');
     setLoading(true);
     try {
       const supabase = createClient();
+      const redirectUrl = `${window.location.origin}/api/auth/callback`;
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/api/auth/callback`,
+          redirectTo: redirectUrl,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -38,7 +66,6 @@ function AuthPageInner() {
         setErrorMsg(error.message);
         setLoading(false);
       }
-      // On success, browser is redirected to Google — no need to setLoading(false)
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Authentication service error';
       setErrorMsg(msg);
@@ -131,21 +158,31 @@ function AuthPageInner() {
             <div className="flex-1 h-px bg-[var(--border-subtle)]" />
           </div>
 
-          {/* Guest Mode */}
-          <div className="text-center">
+          {/* Instant Guest / Demo Mode Button */}
+          <button
+            onClick={handleGuestLogin}
+            type="button"
+            className="w-full flex items-center justify-center gap-2 rounded-full border border-[var(--accent-yellow)]/30 bg-[var(--accent-yellow)]/10 hover:bg-[var(--accent-yellow)]/20 py-2.5 px-4 text-xs font-bold text-[var(--accent-yellow-text)] transition-all"
+          >
+            <span>⚡ Instant Demo Access (Explore Dashboard as Guest)</span>
+          </button>
+
+          <div className="mt-4 text-center">
             <Link
               href="/onboarding"
+              onClick={() => {
+                document.cookie = 'suchakai_guest_session=true; path=/; max-age=604800; SameSite=Lax';
+              }}
               className="text-[11px] text-[var(--text-muted)] hover:text-[var(--text-secondary)] underline transition-colors"
             >
-              Continue as Guest (No login required)
+              Set up a Custom Profile (No login required)
             </Link>
           </div>
 
-          {/* Footer note */}
-          <p className="mt-6 text-center text-[10px] text-[var(--text-muted)] leading-relaxed">
-            By continuing, you agree to SuchakAI&apos;s terms. Your information is used solely to
-            personalise government scheme recommendations.
-          </p>
+          {/* Developer / Deploy note */}
+          <div className="mt-5 p-2.5 rounded-xl bg-[var(--card-subtle)] border border-[var(--border-subtle)] text-[10px] text-[var(--text-muted)] text-center leading-relaxed">
+            💡 <strong>Deploy Note:</strong> If Google sign-in redirects to localhost on your live site, add <code className="text-[var(--accent-yellow)]">https://suchakai.vercel.app/**</code> to your Supabase <em>Allowed Redirect URLs</em>.
+          </div>
         </div>
       </main>
     </div>
